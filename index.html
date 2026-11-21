@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<meta name="color-scheme" content="dark">
+<title>Osario</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+  :root{
+    --bg:#030303; --fg:#ececec; --dim:#8c8c8c; --faint:#555; --line:#2a2a2a;
+    --pad:clamp(24px,8vw,40px);
+    --font:system-ui,-apple-system,"Roboto","Segoe UI",sans-serif;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--fg);font-family:var(--font);font-weight:300}
+  body{overscroll-behavior-y:none}
+  /* textura sutil */
+  body::before{
+    content:"";position:fixed;inset:0;pointer-events:none;z-index:10;opacity:.09;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 .9 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  body::after{
+    content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+    background:radial-gradient(ellipse at 70% 10%,rgba(60,70,70,.12),transparent 55%),radial-gradient(ellipse at 20% 90%,rgba(40,40,40,.18),transparent 60%);
+  }
+  .view{position:relative;z-index:1;min-height:100%}
+  [hidden]{display:none!important}
+  button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+
+  /* lista */
+  header{
+    position:sticky;top:0;z-index:2;
+    padding:calc(env(safe-area-inset-top) + 56px) var(--pad) 18px;
+    background:var(--bg);
+    display:flex;align-items:flex-end;gap:16px;
+  }
+  header::after{content:"";position:absolute;left:0;right:0;top:100%;height:28px;background:linear-gradient(var(--bg),rgba(3,3,3,0));pointer-events:none}
+  #q{
+    flex:1;min-width:0;background:none;border:0;outline:0;color:var(--fg);
+    font:inherit;font-size:22px;padding:6px 0;caret-color:var(--fg);
+  }
+  #q::placeholder{color:transparent}
+  .searchwrap{flex:1;position:relative}
+  .searchwrap::after{content:"";position:absolute;left:0;bottom:0;width:76px;height:2px;background:var(--fg);transition:width .25s}
+  .searchwrap:focus-within::after{width:100%;background:var(--faint)}
+  .chip{font-size:14px;color:var(--dim);letter-spacing:.08em;padding:8px 0 8px 8px}
+  ul{list-style:none;margin:0;padding:8px var(--pad) 120px}
+  li a{
+    display:flex;align-items:center;gap:10px;
+    font-size:clamp(25px,7.4vw,32px);line-height:1.2;padding:13px 0;color:var(--fg);text-decoration:none;
+    overflow-wrap:anywhere;
+  }
+  li a:active{opacity:.45}
+  li.sug a{color:var(--dim)}
+  li.sug a::after{content:"";width:5px;height:5px;border-radius:50%;background:var(--faint);flex:none}
+  li.pend a{color:var(--faint);font-style:italic}
+  li.add a{color:var(--dim);font-size:20px}
+  .foot{color:var(--faint);font-size:13px;letter-spacing:.08em;padding:28px 0 0}
+  .foot button{color:var(--dim);text-decoration:underline;text-underline-offset:4px;text-decoration-color:var(--faint)}
+
+  /* ficha */
+  .page{padding:calc(env(safe-area-inset-top) + 28px) var(--pad) 80px;max-width:680px}
+  .bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:44px}
+  .bar button{font-size:15px;color:var(--dim);letter-spacing:.08em;padding:10px 0}
+  .bar .back{font-size:28px;padding:4px 16px 4px 0}
+  h1{font-weight:200;font-size:clamp(40px,12vw,58px);line-height:1.05;margin:0 0 8px;overflow-wrap:anywhere}
+  .tag{color:var(--faint);font-size:12px;letter-spacing:.2em;text-transform:uppercase;margin-bottom:36px;min-height:1em}
+  section{margin:0 0 30px}
+  h2{font-weight:400;font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:var(--faint);margin:0 0 10px}
+  p{margin:0;font-size:18px;line-height:1.6;color:#d4d4d4}
+  .ex{font-style:italic;color:#b4b4b4}
+  .words{font-size:18px;line-height:1.9;color:#d4d4d4}
+  .words a{color:var(--fg);text-decoration:underline;text-decoration-color:#4a4a4a;text-underline-offset:5px}
+  .sep{color:var(--faint)}
+
+  /* formulario */
+  label{display:block;font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:var(--faint);margin:0 0 10px}
+  input.f,textarea{
+    width:100%;background:none;border:0;border-bottom:1px solid var(--line);color:var(--fg);
+    font:inherit;font-size:22px;padding:8px 0;outline:0;margin-bottom:34px;resize:none
+  }
+  textarea{font-size:18px;line-height:1.5;min-height:110px}
+  input.f:focus,textarea:focus{border-color:var(--dim)}
+  .actions{display:flex;gap:28px}
+  .actions button{font-size:16px;letter-spacing:.1em;color:var(--fg);padding:10px 0;border-bottom:1px solid var(--faint)}
+  .actions button.quiet{color:var(--dim);border-color:transparent}
+  .toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 36px);transform:translateX(-50%);z-index:9;
+    color:var(--fg);font-size:14px;letter-spacing:.06em;background:#111;border:1px solid var(--line);padding:10px 16px;white-space:nowrap;opacity:0;transition:opacity .25s;pointer-events:none}
+  .toast.on{opacity:1}
+</style>
+</head>
+<body>
+
+<div id="list" class="view">
+  <header>
+    <div class="searchwrap"><input id="q" type="search" autocomplete="off" autocorrect="off" spellcheck="false" placeholder="buscar" aria-label="Buscar palabra"></div>
+    <button class="chip" id="rnd" aria-label="Palabra al azar">azar</button>
+  </header>
+  <ul id="ul"></ul>
+</div>
+
+<div id="detail" class="view" hidden>
+  <div class="page">
+    <div class="bar"><button class="back" data-back aria-label="Volver">←</button><button id="rnd2">azar</button></div>
+    <h1 id="dw"></h1>
+    <div class="tag" id="dtag"></div>
+    <div id="dbody"></div>
+  </div>
+</div>
+
+<div id="add" class="view" hidden>
+  <div class="page">
+    <div class="bar"><button class="back" data-back aria-label="Volver">←</button><span></span></div>
+    <label for="aw">palabra</label>
+    <input id="aw" class="f" autocomplete="off" spellcheck="false">
+    <label for="an">tu nota (opcional)</label>
+    <textarea id="an" placeholder=""></textarea>
+    <div class="actions"><button id="asave">guardar</button><button class="quiet" data-back>cancelar</button></div>
+    <p style="margin-top:40px;font-size:14px;color:var(--faint);line-height:1.6">Queda como pendiente. Cuando juntes varias, exportalas desde el final de la lista y se completan en la próxima actualización.</p>
+  </div>
+</div>
+
+<div id="pend" class="view" hidden>
+  <div class="page">
+    <div class="bar"><button class="back" data-back aria-label="Volver">←</button><span></span></div>
+    <h1 style="font-size:40px">pendientes</h1>
+    <div class="tag" id="pcount"></div>
+    <div id="plist" class="words" style="margin-bottom:40px"></div>
+    <div class="actions"><button id="pexp">exportar</button><button class="quiet" id="pcopy">copiar</button></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="words.js"></script>
+<script>
+(() => {
+  const KEY = 'osario.pending.v1';
+  const norm = s => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
+  const coll = new Intl.Collator('es', { sensitivity: 'base' });
+  const $ = id => document.getElementById(id);
+  const esc = s => s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+  const base = (window.OSARIO_WORDS || []).slice();
+  const index = new Map(base.map(o => [norm(o.w), o]));
+
+  // pendientes (guardadas en el celular)
+  function loadPending() {
+    let p = [];
+    try { p = JSON.parse(localStorage.getItem(KEY) || '[]'); } catch (e) {}
+    // las que ya llegaron con la actualización se borran solas
+    const left = p.filter(x => !index.has(norm(x.w)));
+    if (left.length !== p.length) savePending(left);
+    return left;
+  }
+  function savePending(p) { try { localStorage.setItem(KEY, JSON.stringify(p)); } catch (e) {} }
+  let pending = loadPending();
+
+  function all() {
+    const items = base.concat(pending.map(x => ({ w: x.w, n: x.n, p: 1 })));
+    return items.sort((a, b) => coll.compare(a.w, b.w));
+  }
+  const find = w => index.get(norm(w)) || pending.find(x => norm(x.w) === norm(w));
+
+  // ---------- lista ----------
+  const ul = $('ul'), q = $('q');
+  function renderList() {
+    const term = norm(q.value);
+    let items = all();
+    if (term) {
+      items = items.filter(o => norm(o.w).includes(term))
+        .sort((a, b) => (norm(b.w).startsWith(term) - norm(a.w).startsWith(term)) || coll.compare(a.w, b.w));
+    }
+    let html = items.map(o =>
+      `<li class="${o.r ? 'sug' : ''}${o.p ? 'pend' : ''}"><a href="#/w/${encodeURIComponent(o.w)}">${esc(o.w)}</a></li>`).join('');
+    if (term && !items.some(o => norm(o.w) === term)) {
+      html += `<li class="add"><a href="#/add/${encodeURIComponent(q.value.trim())}">+ agregar «${esc(q.value.trim())}»</a></li>`;
+    }
+    if (!term) {
+      html += `<li class="foot">${base.length} palabras${pending.length ? ` · <button id="gopend">${pending.length} pendiente${pending.length > 1 ? 's' : ''}</button>` : ''} · <button id="goadd">agregar</button></li>`;
+    }
+    ul.innerHTML = html;
+  }
+  q.addEventListener('input', renderList);
+  ul.addEventListener('click', e => {
+    if (e.target.id === 'gopend') location.hash = '#/pendientes';
+    if (e.target.id === 'goadd') location.hash = '#/add/';
+  });
+
+  // ---------- azar ----------
+  function random() {
+    const pool = base.length ? base : all();
+    const o = pool[Math.floor(Math.random() * pool.length)];
+    location.hash = '#/w/' + encodeURIComponent(o.w);
+  }
+  $('rnd').onclick = random;
+  $('rnd2').onclick = () => { history.replaceState(null, '', '#/w/' + encodeURIComponent(base[Math.floor(Math.random()*base.length)].w)); route(); };
+
+  // ---------- ficha ----------
+  function linkify(arr) {
+    return arr.map(t => index.has(norm(t)) || pending.some(x => norm(x.w) === norm(t))
+      ? `<a href="#/w/${encodeURIComponent(t)}" data-swap>${esc(t)}</a>` : esc(t)).join('<span class="sep">, </span>');
+  }
+  function renderDetail(w) {
+    const o = find(w);
+    if (!o) { location.replace('#'); return; }
+    $('dw').textContent = o.w;
+    const body = [];
+    if (o.p) {
+      $('dtag').textContent = 'pendiente';
+      body.push(`<section><h2>tu nota</h2><p>${o.n ? esc(o.n) : '<span style="color:var(--faint)">sin nota</span>'}</p></section>`);
+      body.push(`<div class="actions" style="margin-top:40px"><button id="del" class="quiet">borrar</button></div>`);
+    } else {
+      $('dtag').textContent = o.r ? 'sugerida' : '';
+      body.push(`<section><h2>significado</h2><p>${esc(o.d)}</p></section>`);
+      if (o.s.length) body.push(`<section><h2>sinónimos</h2><div class="words">${linkify(o.s)}</div></section>`);
+      if (o.a.length) body.push(`<section><h2>antónimos</h2><div class="words">${linkify(o.a)}</div></section>`);
+      if (o.e) body.push(`<section><h2>etimología</h2><p>${esc(o.e)}</p></section>`);
+      if (o.x) body.push(`<section><h2>ejemplo</h2><p class="ex">${esc(o.x)}</p></section>`);
+      if (o.n) body.push(`<section><h2>tu nota</h2><p>${esc(o.n)}</p></section>`);
+    }
+    $('dbody').innerHTML = body.join('');
+    const del = $('del');
+    if (del) del.onclick = () => {
+      pending = pending.filter(x => norm(x.w) !== norm(o.w)); savePending(pending);
+      toast('borrada'); history.back();
+    };
+    window.scrollTo(0, 0);
+  }
+
+  // ---------- agregar ----------
+  function renderAdd(w) {
+    $('aw').value = w; $('an').value = '';
+    setTimeout(() => (w ? $('an') : $('aw')).focus(), 50);
+  }
+  $('asave').onclick = () => {
+    const w = $('aw').value.trim().replace(/\s+/g, ' ');
+    if (!w) return;
+    if (find(w)) { toast('ya está en la lista'); return; }
+    pending.push({ w, n: $('an').value.trim(), t: Date.now() });
+    savePending(pending);
+    q.value = '';
+    toast('guardada como pendiente');
+    location.replace('#');
+  };
+
+  // ---------- pendientes ----------
+  const exportText = () => pending.map(x => x.n ? `${x.w} — ${x.n}` : x.w).join('\n');
+  function renderPend() {
+    $('pcount').textContent = pending.length ? `${pending.length} sin ficha` : 'ninguna';
+    $('plist').innerHTML = pending.map(x => `<a href="#/w/${encodeURIComponent(x.w)}">${esc(x.w)}</a>`).join('<span class="sep">, </span>');
+  }
+  async function copy() {
+    try { await navigator.clipboard.writeText(exportText()); toast('copiadas'); }
+    catch (e) { toast('no se pudo copiar'); }
+  }
+  $('pcopy').onclick = copy;
+  $('pexp').onclick = async () => {
+    if (!pending.length) return;
+    const text = exportText();
+    const file = new File([text], 'osario-pendientes.txt', { type: 'text/plain' });
+    try {
+      if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: 'Osario · pendientes' }); return; }
+      if (navigator.share) { await navigator.share({ title: 'Osario · pendientes', text }); return; }
+    } catch (e) { if (e.name === 'AbortError') return; }
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(file); a.download = file.name; a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+  };
+
+  // ---------- navegación ----------
+  document.addEventListener('click', e => {
+    if (e.target.closest('[data-back]')) { history.length > 1 ? history.back() : location.replace('#'); }
+    const sw = e.target.closest('a[data-swap]');
+    if (sw) { e.preventDefault(); history.pushState(null, '', sw.getAttribute('href')); route(); }
+  });
+  let listScroll = 0;
+  function show(id) {
+    for (const v of ['list', 'detail', 'add', 'pend']) $(v).hidden = v !== id;
+  }
+  function route() {
+    const h = location.hash;
+    const m = h.match(/^#\/(w|add)\/(.*)$/);
+    if (!$('list').hidden) listScroll = window.scrollY;
+    if (m && m[1] === 'w') { show('detail'); renderDetail(decodeURIComponent(m[2])); }
+    else if (m && m[1] === 'add') { show('add'); renderAdd(decodeURIComponent(m[2])); }
+    else if (h === '#/pendientes') { show('pend'); renderPend(); window.scrollTo(0, 0); }
+    else { show('list'); renderList(); requestAnimationFrame(() => window.scrollTo(0, listScroll)); }
+  }
+  window.addEventListener('hashchange', route);
+
+  let tt;
+  function toast(msg) { const t = $('toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(tt); tt = setTimeout(() => t.classList.remove('on'), 1800); }
+
+  route();
+
+  if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  }
+})();
+</script>
+</body>
+</html>
